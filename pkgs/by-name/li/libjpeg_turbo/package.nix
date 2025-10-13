@@ -67,6 +67,10 @@ stdenv.mkDerivation (finalAttrs: {
     "-DENABLE_STATIC=${if enableStatic then "1" else "0"}"
     "-DENABLE_SHARED=${if enableShared then "1" else "0"}"
   ]
+  ++ lib.optionals stdenv.hostPlatform.isMinGW [
+    # Disable SIMD on MinGW due to FAST_FLOAT compile issues in jsimd.c
+    "-DWITH_SIMD=0"
+  ]
   ++ lib.optionals enableJava [
     "-DWITH_JAVA=1"
   ]

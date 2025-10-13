@@ -6780,10 +6780,14 @@ with pkgs;
   pkgconf = callPackage ../build-support/pkg-config-wrapper {
     pkg-config = pkgconf-unwrapped;
     baseBinName = "pkgconf";
+    extraBuildCommands = lib.optionalString stdenv.hostPlatform.isWindows ''
+      # Avoid circular refs for cross: don't propagate lib/pkgconf to dev
+      rm -f $out/lib/*
+    '';
   };
 
   pkg-config = callPackage ../build-support/pkg-config-wrapper {
-    pkg-config = pkg-config-unwrapped;
+    pkg-config = if stdenv.hostPlatform.isWindows then pkgconf-unwrapped else pkg-config-unwrapped;
   };
 
   pkg-configUpstream = lowPrio (

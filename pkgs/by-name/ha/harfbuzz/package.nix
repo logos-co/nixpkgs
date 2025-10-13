@@ -69,6 +69,10 @@ stdenv.mkDerivation (finalAttrs: {
     (lib.mesonEnable "graphite" withGraphite2)
     (lib.mesonEnable "icu" withIcu)
     (lib.mesonEnable "introspection" withIntrospection)
+    # Avoid pulling GLib on Windows cross builds
+    (lib.mesonEnable "glib" (!stdenv.hostPlatform.isWindows))
+    # Avoid pulling GLib on Windows cross builds
+    (lib.mesonEnable "gobject" (!stdenv.hostPlatform.isWindows))
     (lib.mesonOption "cmakepackagedir" "${placeholder "dev"}/lib/cmake")
   ];
 
@@ -82,17 +86,17 @@ stdenv.mkDerivation (finalAttrs: {
     libintl
     pkg-config
     python3
-    glib
     gtk-doc
     docbook-xsl-nons
     docbook_xml_dtd_43
   ]
+  ++ lib.optionals (!stdenv.hostPlatform.isWindows) [ glib ]
   ++ lib.optional withIntrospection gobject-introspection;
 
   buildInputs = [
-    glib
     freetype
-  ];
+  ]
+  ++ lib.optionals (!stdenv.hostPlatform.isWindows) [ glib ];
 
   propagatedBuildInputs =
     lib.optional withGraphite2 graphite2

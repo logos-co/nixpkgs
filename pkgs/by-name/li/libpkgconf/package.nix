@@ -15,7 +15,11 @@ stdenv.mkDerivation (finalAttrs: {
     hash = "sha256-USA9me1XP6c0S/B8pibxDHzAlOCEasSqACO9DIPCWkE=";
   };
 
-  outputs = [
+  outputs = if stdenv.hostPlatform.isWindows then [
+    "out"
+    "man"
+    "doc"
+  ] else [
     "out"
     "lib"
     "dev"
@@ -30,7 +34,7 @@ stdenv.mkDerivation (finalAttrs: {
   # Debian has outputs like these too
   # (https://packages.debian.org/source/bullseye/pkgconf), so it is safe to
   # remove those references
-  postFixup = ''
+  postFixup = lib.optionalString (!stdenv.hostPlatform.isWindows) ''
     remove-references-to \
       -t "${placeholder "out"}" \
       "${placeholder "lib"}"/lib/*
@@ -44,7 +48,7 @@ stdenv.mkDerivation (finalAttrs: {
   # while the aclocal stuff is for the tool. The tool is already for use during
   # development, so there is no reason to have separate "dev-bin" and "dev-lib"
   # outputs or something.
-  + ''
+  + lib.optionalString (!stdenv.hostPlatform.isWindows) ''
     mv ${placeholder "dev"}/share ${placeholder "out"}
   '';
 

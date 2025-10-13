@@ -18,6 +18,13 @@ stdenv.mkDerivation rec {
 
   nativeBuildInputs = [ cmake ];
 
+  # CMake 3.30+ enforces a newer policy floor; upstream's CMakeLists.txt
+  # still uses the old "cmake_minimum_required(VERSION 3.0)" semantics.
+  # Pass a minimum policy version to allow configuration to proceed.
+  cmakeFlags = [
+    "-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
+  ];
+
   meta = with lib; {
     homepage = "https://github.com/dlfcn-win32/dlfcn-win32";
     description = "Set of functions that allows runtime dynamic library loading";

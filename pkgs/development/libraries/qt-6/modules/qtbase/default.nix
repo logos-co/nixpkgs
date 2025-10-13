@@ -44,6 +44,7 @@
   libXi,
   libXrender,
   libjpeg,
+  libjpeg_original,
   libpng,
   libxcb,
   libxkbcommon,
@@ -84,6 +85,8 @@
 
 let
   isCrossBuild = !stdenv.buildPlatform.canExecute stdenv.hostPlatform;
+  # libjpeg-turbo currently fails to build for MinGW; fall back to IJG libjpeg
+  libjpegForHost = if stdenv.hostPlatform.isMinGW then libjpeg_original else libjpeg;
 in
 stdenv.mkDerivation rec {
   pname = "qtbase";
@@ -96,20 +99,20 @@ stdenv.mkDerivation rec {
     openssl
     sqlite
     zlib
-    libGL
     vulkan-headers
-    vulkan-loader
     # Text rendering
     harfbuzz
     icu
     # Image formats
-    libjpeg
     libpng
     pcre2
     zstd
     libb2
     md4c
     double-conversion
+  ]
+  ++ lib.optionals (!stdenv.hostPlatform.isMinGW) [
+    libjpegForHost
   ]
   ++ lib.optionals (!stdenv.hostPlatform.isMinGW) [
     libproxy
@@ -125,6 +128,8 @@ stdenv.mkDerivation rec {
     systemd
   ]
   ++ lib.optionals stdenv.hostPlatform.isLinux [
+    libGL
+    vulkan-loader
     util-linux
     mtdev
     lksctp-tools
@@ -261,6 +266,9 @@ stdenv.mkDerivation rec {
     # don't leak OS version into the final output
     # https://bugreports.qt.io/browse/QTBUG-136060
     "-DCMAKE_SYSTEM_VERSION="
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isMinGW [
+    "-DQT_FEATURE_jpeg=OFF"
   ]
   ++ lib.optionals (!stdenv.hostPlatform.isDarwin) [
     "-DQT_FEATURE_sctp=ON"
