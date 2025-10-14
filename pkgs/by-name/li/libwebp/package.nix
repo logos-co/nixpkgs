@@ -48,8 +48,9 @@ stdenv.mkDerivation rec {
     (lib.cmakeBool "BUILD_SHARED_LIBS" true)
     (lib.cmakeBool "WEBP_USE_THREAD" threadingSupport)
     (lib.cmakeBool "WEBP_BUILD_VWEBP" openglSupport)
-    (lib.cmakeBool "WEBP_BUILD_IMG2WEBP" (pngSupport || jpegSupport || tiffSupport))
-    (lib.cmakeBool "WEBP_BUILD_GIF2WEBP" gifSupport)
+    # Disable CLI tools on Windows cross builds to avoid extra deps/linking
+    (lib.cmakeBool "WEBP_BUILD_IMG2WEBP" (!stdenv.hostPlatform.isWindows && (pngSupport || jpegSupport || tiffSupport)))
+    (lib.cmakeBool "WEBP_BUILD_GIF2WEBP" (!stdenv.hostPlatform.isWindows && gifSupport))
     (lib.cmakeBool "WEBP_BUILD_ANIM_UTILS" false) # Not installed
     (lib.cmakeBool "WEBP_BUILD_EXTRAS" false) # Not installed
     (lib.cmakeBool "WEBP_ENABLE_SWAP_16BIT_CSP" swap16bitcspSupport)
@@ -64,10 +65,11 @@ stdenv.mkDerivation rec {
       libGL
       libGLU
     ]
-    ++ lib.optionals pngSupport [ libpng ]
-    ++ lib.optionals jpegSupport [ libjpeg ]
-    ++ lib.optionals tiffSupport [ libtiff ]
-    ++ lib.optionals gifSupport [ giflib ];
+    # CLI-only deps; skip on Windows cross builds
+    ++ lib.optionals (!stdenv.hostPlatform.isWindows && pngSupport) [ libpng ]
+    ++ lib.optionals (!stdenv.hostPlatform.isWindows && jpegSupport) [ libjpeg ]
+    ++ lib.optionals (!stdenv.hostPlatform.isWindows && tiffSupport) [ libtiff ]
+    ++ lib.optionals (!stdenv.hostPlatform.isWindows && gifSupport) [ giflib ];
 
   passthru.tests = {
     inherit

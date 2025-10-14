@@ -32,6 +32,6 @@ stdenv.mkDerivation (finalAttrs: {
     maintainers = with lib.maintainers; [ sigmanificient ];
     license = lib.licenses.free;
     pkgConfigModules = [ "libjpeg" ];
-    platforms = lib.platforms.unix;
+    platforms = lib.platforms.unix ++ lib.platforms.windows;
   };
 })

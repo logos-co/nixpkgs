@@ -70,6 +70,8 @@ stdenv.mkDerivation (finalAttrs: {
   ++ lib.optionals stdenv.hostPlatform.isMinGW [
     # Disable SIMD on MinGW due to FAST_FLOAT compile issues in jsimd.c
     "-DWITH_SIMD=0"
+    # Disable TurboJPEG wrapper which fails to compile on MinGW with RGB macros
+    "-DWITH_TURBOJPEG=0"
   ]
   ++ lib.optionals enableJava [
     "-DWITH_JAVA=1"

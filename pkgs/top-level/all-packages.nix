@@ -1594,7 +1594,6 @@ with pkgs;
   bitwarden-menu = python3Packages.callPackage ../applications/misc/bitwarden-menu { };
 
   blocksat-cli = with python3Packages; toPythonApplication blocksat-cli;
-
   bucklespring = bucklespring-x11;
   bucklespring-libinput = callPackage ../applications/audio/bucklespring { };
   bucklespring-x11 = callPackage ../applications/audio/bucklespring { legacy = true; };
@@ -2386,7 +2385,6 @@ with pkgs;
   mellowplayer = libsForQt5.callPackage ../applications/audio/mellowplayer { };
 
   circus = with python310Packages; toPythonApplication circus;
-
   inherit (callPackage ../applications/networking/remote/citrix-workspace { })
     citrix_workspace_23_11_0
     citrix_workspace_24_02_0
@@ -3185,7 +3183,6 @@ with pkgs;
     kakoune: attrs:
     callPackage ../applications/editors/kakoune/wrapper.nix (attrs // { inherit kakoune; });
   kakounePlugins = recurseIntoAttrs (callPackage ../applications/editors/kakoune/plugins { });
-
   kakoune-unwrapped = callPackage ../applications/editors/kakoune { };
   kakoune = wrapKakoune kakoune-unwrapped {
     plugins = [ ]; # override with the list of desired plugins
@@ -3979,7 +3976,6 @@ with pkgs;
   s3-credentials = with python3Packages; toPythonApplication s3-credentials;
 
   safety-cli = with python3.pkgs; toPythonApplication safety;
-
   sasview = libsForQt5.callPackage ../applications/science/misc/sasview { };
 
   saunafs = callPackage ../by-name/sa/saunafs/package.nix {
@@ -4755,7 +4751,6 @@ with pkgs;
   };
 
   gnat = gnat13; # When changing this, update also gnatPackages
-
   gnat13 = wrapCC (
     gcc13.cc.override {
       name = "gnat";
@@ -5554,7 +5549,6 @@ with pkgs;
     wrapCCWith {
       inherit cc;
     };
-
   wrapBintoolsWith =
     {
       bintools,
@@ -6331,7 +6325,6 @@ with pkgs;
   libopcodes_2_38 = callPackage ../development/tools/misc/binutils/2.38/libopcodes.nix {
     autoreconfHook = buildPackages.autoreconfHook269;
   };
-
   # Here we select the default bintools implementations to be used.  Note when
   # cross compiling these are used not for this stage but the *next* stage.
   # That is why we choose using this stage's target platform / next stage's
@@ -7129,7 +7122,6 @@ with pkgs;
   };
 
   inherit (cosmopolitan) cosmocc;
-
   ustream-ssl = callPackage ../development/libraries/ustream-ssl { ssl_implementation = openssl; };
 
   ustream-ssl-wolfssl = callPackage ../development/libraries/ustream-ssl {
@@ -7848,7 +7840,7 @@ with pkgs;
 
   libfive = libsForQt5.callPackage ../development/libraries/libfive { };
 
-  # Use Apple’s fork of libffi by default, which provides APIs and trampoline functionality that is not yet
+  # Use Apple's fork of libffi by default, which provides APIs and trampoline functionality that is not yet
   # merged upstream. This is needed by some packages (such as cffi).
   #
   # `libffiReal` is provided in case the upstream libffi package is needed on Darwin instead of the fork.
@@ -7916,7 +7908,6 @@ with pkgs;
     '';
 
   libiconvReal = callPackage ../development/libraries/libiconv { };
-
   iconv =
     if
       lib.elem stdenv.hostPlatform.libc [
@@ -7942,7 +7933,7 @@ with pkgs;
   };
 
   # also known as libturbojpeg
-  libjpeg = libjpeg_turbo;
+  libjpeg = if stdenv.hostPlatform.isWindows then libjpeg_original else libjpeg_turbo;
   libjpeg8 = libjpeg_turbo.override { enableJpeg8 = true; };
 
   malcontent = callPackage ../development/libraries/malcontent { };
@@ -8136,14 +8127,14 @@ with pkgs;
   # On macOS, the SDK provides the OpenGL framework in `stdenv`.
   # Packages that still need GLX specifically can pull in `libGLX`
   # instead. If you have a package that should work without X11 but it
-  # can’t find the library, it may help to add the path to
+  # can't find the library, it may help to add the path to
   # `$NIX_CFLAGS_COMPILE`:
   #
   #    preConfigure = ''
   #      export NIX_CFLAGS_COMPILE+=" -L$SDKROOT/System/Library/Frameworks/OpenGL.framework/Versions/Current/Libraries"
   #    '';
   #
-  # If you still can’t get it working, please don’t hesitate to ping
+  # If you still can't get it working, please don't hesitate to ping
   # @NixOS/darwin-maintainers to ask an expert to take a look.
   libGL =
     if stdenv.hostPlatform.useAndroidPrebuilt then
@@ -8155,7 +8146,7 @@ with pkgs;
 
   # On macOS, the SDK provides the OpenGL framework in `stdenv`.
   # Packages that use `libGLX` on macOS may need to depend on
-  # `mesa_glu` directly if this doesn’t work.
+  # `mesa_glu` directly if this doesn't work.
   libGLU = if stdenv.hostPlatform.isDarwin then null else mesa_glu;
 
   # `libglvnd` does not work (yet?) on macOS.
@@ -8163,7 +8154,7 @@ with pkgs;
 
   # On macOS, the SDK provides the GLUT framework in `stdenv`. Packages
   # that use `libGLX` on macOS may need to depend on `freeglut`
-  # directly if this doesn’t work.
+  # directly if this doesn't work.
   libglut = if stdenv.hostPlatform.isDarwin then null else freeglut;
 
   mesa =
@@ -8225,7 +8216,7 @@ with pkgs;
   ngtcp2 = callPackage ../development/libraries/ngtcp2 { };
   ngtcp2-gnutls = callPackage ../development/libraries/ngtcp2/gnutls.nix { };
 
-  non = callPackage ../applications/audio/non {
+  non = callPackage ../development/libraries/non {
     wafHook = (waf.override { extraTools = [ "gccdeps" ]; }).hook;
   };
 
@@ -8712,7 +8703,6 @@ with pkgs;
   sqlite = lowPrio (callPackage ../development/libraries/sqlite { });
 
   unqlite = lowPrio (callPackage ../development/libraries/unqlite { });
-
   inherit
     (callPackage ../development/libraries/sqlite/tools.nix {
     })
@@ -9507,7 +9497,6 @@ with pkgs;
       nginxModules.moreheaders
     ];
   };
-
   nginxMainline = callPackage ../servers/http/nginx/mainline.nix {
     zlib-ng = zlib-ng.override { withZlibCompat = true; };
     withKTLS = true;
@@ -10300,7 +10289,6 @@ with pkgs;
   }; # sysdig is a client, for a driver look at linuxPackagesFor
 
   sysprof = callPackage ../development/tools/profiling/sysprof { };
-
   libsysprof-capture = callPackage ../development/tools/profiling/sysprof/capture.nix { };
 
   systemd = callPackage ../os-specific/linux/systemd {
@@ -11099,7 +11087,6 @@ with pkgs;
   };
 
   fritzing = qt6Packages.callPackage ../applications/science/electronics/fritzing { };
-
   fvwm = fvwm2;
 
   gaucheBootstrap = callPackage ../development/interpreters/gauche/boot.nix { };
@@ -11893,7 +11880,6 @@ with pkgs;
   };
 
   moolticute = libsForQt5.callPackage ../applications/misc/moolticute { };
-
   mopidyPackages =
     (callPackages ../applications/audio/mopidy {
       python = python3;
@@ -12690,7 +12676,6 @@ with pkgs;
   };
 
   tony = libsForQt5.callPackage ../applications/audio/tony { };
-
   trustedqsl = tqsl; # Alias added 2019-02-10
 
   libtransmission_3 = transmission_3.override {
@@ -13490,7 +13475,6 @@ with pkgs;
   };
 
   blightmud = callPackage ../games/blightmud { };
-
   blightmud-tts = callPackage ../games/blightmud { withTTS = true; };
 
   npush = callPackage ../games/npush { };
@@ -14290,7 +14274,6 @@ with pkgs;
   antimicrox = libsForQt5.callPackage ../tools/misc/antimicrox { };
 
   autotiling = python3Packages.callPackage ../misc/autotiling { };
-
   brgenml1lpr = pkgsi686Linux.callPackage ../misc/cups/drivers/brgenml1lpr { };
 
   foomatic-db-ppds-withNonfreeDb = callPackage ../by-name/fo/foomatic-db-ppds/package.nix {
