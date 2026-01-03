@@ -8,6 +8,7 @@
   cjson,
   cmocka,
   mbedtls,
+  windows,
 }:
 
 stdenv.mkDerivation rec {
@@ -34,11 +35,28 @@ stdenv.mkDerivation rec {
     pkg-config
   ];
 
+  mesonFlags = lib.optionals stdenv.hostPlatform.isMinGW [
+    # Enable the MinGW+winpthreads path. Without this, librist forces
+    # HAVE_PTHREADS=0 on Windows and builds its internal pthread/time shims,
+    # which then conflict with winpthreads (and with deps like mbedtls that
+    # include <pthread.h>).
+    "-Dhave_mingw_pthreads=true"
+  ];
+
   buildInputs = [
     cjson
     cmocka
     mbedtls
+  ] ++ lib.optionals stdenv.hostPlatform.isMinGW [
+    # librist uses pthreads on MinGW when available (MSYS2 depends on libwinpthread).
+    # Also avoids conflicts with librist's internal pthread shim when a dependency
+    # (e.g. mbedtls) includes <pthread.h>.
+    windows.pthreads
   ];
+
+  env.NIX_LDFLAGS = lib.optionalString stdenv.hostPlatform.isMinGW "-lpthread";
+
+  doCheck = stdenv.buildPlatform.canExecute stdenv.hostPlatform;
 
   meta = {
     description = "Library that can be used to easily add the RIST protocol to your application";
