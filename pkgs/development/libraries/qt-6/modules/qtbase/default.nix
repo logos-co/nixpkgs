@@ -83,7 +83,7 @@
   gtk3,
   withLibinput ? false,
   libinput,
-  withWayland ? lib.meta.availableOn stdenv.hostPlatform wayland,
+  withWayland ? (!stdenv.hostPlatform.isWindows && lib.meta.availableOn stdenv.hostPlatform wayland),
   wayland,
   wayland-scanner,
   # options
@@ -109,12 +109,11 @@ stdenv.mkDerivation {
     openssl
     sqlite
     zlib
-    libGL
-    vulkan-headers
-    vulkan-loader
     # Text rendering
     harfbuzz
     icu
+    fontconfig
+    freetype
     # Image formats
     libjpeg
     libpng
@@ -124,11 +123,14 @@ stdenv.mkDerivation {
     md4c
     double-conversion
   ]
-  ++ lib.optionals (!stdenv.hostPlatform.isMinGW) [
-    libproxy
-    dbus
-    glib
-    # unixodbc drivers
+  ++ lib.optional (lib.meta.availableOn stdenv.hostPlatform libGL) libGL
+  ++ lib.optional (lib.meta.availableOn stdenv.hostPlatform vulkan-headers) vulkan-headers
+  ++ lib.optional (lib.meta.availableOn stdenv.hostPlatform vulkan-loader) vulkan-loader
+  ++ lib.optional (lib.meta.availableOn stdenv.hostPlatform libproxy) libproxy
+  ++ lib.optional (lib.meta.availableOn stdenv.hostPlatform dbus) dbus
+  ++ lib.optional (lib.meta.availableOn stdenv.hostPlatform glib) glib
+  # unixODBC drivers (not meaningful on Windows/MinGW)
+  ++ lib.optionals (!stdenv.hostPlatform.isWindows) [
     unixodbc
     unixodbcDrivers.psql
     unixodbcDrivers.sqlite
@@ -149,9 +151,6 @@ stdenv.mkDerivation {
     libgbm
     libdatrie
     udev
-    # Text rendering
-    fontconfig
-    freetype
     # X11 libs
     libx11
     libxcomposite
@@ -183,7 +182,9 @@ stdenv.mkDerivation {
     ++ lib.optionals stdenv.hostPlatform.isDarwin (darwinVersionInputs ++ [ moltenvk ])
     ++ lib.optional withGtk3 gtk3
     ++ lib.optional withLibinput libinput
-    ++ lib.optional (libmysqlclient != null && !stdenv.hostPlatform.isMinGW) libmysqlclient
+    ++ lib.optional (
+      libmysqlclient != null && lib.meta.availableOn stdenv.hostPlatform libmysqlclient
+    ) libmysqlclient
     ++ lib.optional (libpq != null && lib.meta.availableOn stdenv.hostPlatform libpq) libpq;
 
   nativeBuildInputs = [
@@ -286,15 +287,35 @@ stdenv.mkDerivation {
     "-DQT_EMBED_TOOLCHAIN_COMPILER=OFF"
     "-DINSTALL_PLUGINSDIR=${qtPluginPrefix}"
     "-DINSTALL_QMLDIR=${qtQmlPrefix}"
-    "-DQT_FEATURE_libproxy=ON"
+    # MSYS2 enables this on MinGW; also required for reliable discovery of
+    # e.g. freetype/fontconfig on Windows targets.
+    "-DQT_FEATURE_pkg_config=ON"
+    "-DPKG_CONFIG_EXECUTABLE=${
+      if isCrossBuild then
+        "${pkgsBuildBuild.pkg-config}/bin/pkg-config"
+      else
+        "${pkg-config}/bin/pkg-config"
+    }"
+    "-DQT_FEATURE_jpeg=ON"
+    "-DQT_FEATURE_libproxy=${if lib.meta.availableOn stdenv.hostPlatform libproxy then "ON" else "OFF"}"
     "-DQT_FEATURE_system_sqlite=ON"
     "-DQT_FEATURE_openssl_linked=ON"
-    "-DQT_FEATURE_vulkan=ON"
+    "-DQT_FEATURE_vulkan=${
+      if
+        (
+          lib.meta.availableOn stdenv.hostPlatform vulkan-loader
+          && lib.meta.availableOn stdenv.hostPlatform vulkan-headers
+        )
+      then
+        "ON"
+      else
+        "OFF"
+    }"
     # don't leak OS version into the final output
     # https://bugreports.qt.io/browse/QTBUG-136060
     "-DCMAKE_SYSTEM_VERSION="
   ]
-  ++ lib.optionals (!stdenv.hostPlatform.isDarwin) [
+  ++ lib.optionals stdenv.hostPlatform.isLinux [
     "-DQT_FEATURE_sctp=ON"
     "-DQT_FEATURE_journald=${if systemdSupport then "ON" else "OFF"}"
   ]

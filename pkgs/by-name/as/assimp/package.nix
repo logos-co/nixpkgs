@@ -30,6 +30,25 @@ stdenv.mkDerivation (finalAttrs: {
       --replace-fail 'define TMP_PATH "/var/tmp/"' 'define TMP_PATH "/tmp/"'
   '';
 
+  patches = lib.optionals stdenv.hostPlatform.isMinGW [
+    # Qt3D uses the system assimp and needs assimp's exported CMake package to
+    # accept newer assimp versions (e.g. 6.x) when requesting an older major.
+    # Matches MSYS2 mingw-w64-assimp.
+    ./cmake-any-newer-version.patch
+
+    # MinGW: make Assimp respect GNUInstallDirs (and therefore Nixpkgs' multi-output
+    # install dirs) instead of its non-Unix fallback cache vars.
+    ./mingw-use-gnuinstalldirs.patch
+
+    # MinGW: prevent assimp_cmd's executable import library from clobbering
+    # libassimp.dll.a when OUTPUT_NAME is `assimp`.
+    ./mingw-assimp-cmd-unique-importlib.patch
+
+    # Windows/MinGW: export ASSIMP_DLL to consumers when building shared libs so
+    # downstreams compile with correct dllimport semantics.
+    ./windows-export-assimp-dll.patch
+  ];
+
   nativeBuildInputs = [ cmake ];
 
   buildInputs = [
@@ -42,6 +61,13 @@ stdenv.mkDerivation (finalAttrs: {
   cmakeFlags = [
     (lib.cmakeBool "ASSIMP_BUILD_ASSIMP_TOOLS" true)
     (lib.cmakeBool "ASSIMP_BUILD_TESTS" finalAttrs.finalPackage.doCheck)
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isMinGW [
+    # MinGW: don't build/install the bundled zlib; use nixpkgs zlib instead.
+    # Matches MSYS2 mingw-w64-assimp.
+    (lib.cmakeBool "ASSIMP_BUILD_ZLIB" false)
+    # Keep MinGW builds robust across compilers (MSYS2 disables Werror).
+    (lib.cmakeBool "ASSIMP_WARNINGS_AS_ERRORS" false)
   ];
 
   # Some matrix tests fail on non-86_64-linux:
@@ -67,6 +93,6 @@ stdenv.mkDerivation (finalAttrs: {
     homepage = "https://www.assimp.org/";
     license = lib.licenses.bsd3;
     maintainers = [ ];
-    platforms = lib.platforms.linux ++ lib.platforms.darwin;
+    platforms = lib.platforms.unix ++ lib.platforms.windows;
   };
 })

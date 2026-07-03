@@ -49,6 +49,12 @@ stdenv.mkDerivation (finalAttrs: {
       url = "https://github.com/lopsided98/grpc/commit/a9b917666234f5665c347123d699055d8c2537b2.patch";
       hash = "sha256-Lm0GQsz/UjBbXXEE14lT0dcRzVmCKycrlrdBJj+KLu8=";
     })
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isMinGW [
+    ./003-fix-build-shared-libs-on-mingw.patch
+  ]
+  ++ lib.optionals (stdenv.hostPlatform != stdenv.buildPlatform) [
+    ./disable-grpc-plugin-support-when-codegen-off.patch
   ];
 
   nativeBuildInputs = [
@@ -77,7 +83,16 @@ stdenv.mkDerivation (finalAttrs: {
     "-DgRPC_ABSL_PROVIDER=package"
     "-DBUILD_SHARED_LIBS=ON"
   ]
+  ++ lib.optionals stdenv.hostPlatform.isMinGW [
+    # MinGW needs explicit symbol exports when producing DLLs. MSYS2 uses
+    # `-Wl,--export-all-symbols`; CMake’s built-in knob is equivalent.
+    "-DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON"
+    "-DCMAKE_DLL_NAME_WITH_SOVERSION=ON"
+  ]
   ++ lib.optionals (stdenv.hostPlatform != stdenv.buildPlatform) [
+    # When cross-compiling, grpc's codegen/plugin binaries are build-machine tools.
+    # Building them for the target can fail to link against protoc compiler internals.
+    "-DgRPC_BUILD_CODEGEN=OFF"
     "-D_gRPC_PROTOBUF_PROTOC_EXECUTABLE=${buildPackages.protobuf}/bin/protoc"
     "-D_gRPC_CPP_PLUGIN=${buildPackages.grpc}/bin/grpc_cpp_plugin"
   ]
@@ -101,6 +116,11 @@ stdenv.mkDerivation (finalAttrs: {
   # basel BUILD file on case-insensitive filesystems.
   preConfigure = ''
     rm -vf BUILD
+  ''
+  + lib.optionalString stdenv.hostPlatform.isMinGW ''
+    # MinGW: ensure DLLs export symbols so dependent targets can link against
+    # their import libraries. (MSYS2 uses the same flag.)
+    export NIX_LDFLAGS+=" --export-all-symbols"
   '';
 
   # When natively compiling, grpc_cpp_plugin is executed from the build directory,
