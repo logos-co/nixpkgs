@@ -11,6 +11,7 @@
   perl, # Project uses Perl for scripting and testing
   python3,
   python3Packages,
+  windows,
 
   enableThreading ? true, # Threading can be disabled to increase security https://tls.mbed.org/kb/development/thread-safety-and-multi-threading
 }:
@@ -40,6 +41,14 @@ stdenv.mkDerivation rec {
     python3Packages.jinja2
     python3Packages.jsonschema
   ];
+
+  # MSYS2 builds mbedtls for MinGW with winpthreads and pthread linkage enabled.
+  #
+  # mbedtls installs headers that include <pthread.h> when pthread threading is
+  # enabled, so downstream consumers must see the pthread headers too.
+  buildInputs = lib.optionals stdenv.hostPlatform.isMinGW [ windows.pthreads ];
+  propagatedBuildInputs = lib.optionals stdenv.hostPlatform.isMinGW [ windows.pthreads ];
+  env.NIX_LDFLAGS = lib.optionalString stdenv.hostPlatform.isMinGW "-lpthread";
 
   strictDeps = true;
 
@@ -85,9 +94,15 @@ stdenv.mkDerivation rec {
     # [1]: https://gcc.gnu.org/gcc-15/changes.html
     # [2]: https://github.com/Mbed-TLS/mbedtls/issues/9885
     "-DCMAKE_C_FLAGS=-fzero-init-padding-bits=unions"
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isMinGW [
+    # MSYS2 disables fatal warnings (mbedtls builds with -Werror by default).
+    "-DMBEDTLS_FATAL_WARNINGS=OFF"
+    # Match MSYS2: link against winpthreads.
+    "-DLINK_WITH_PTHREAD=ON"
   ];
 
-  doCheck = true;
+  doCheck = stdenv.buildPlatform.canExecute stdenv.hostPlatform;
 
   # Parallel checking causes test failures
   # https://github.com/Mbed-TLS/mbedtls/issues/4980

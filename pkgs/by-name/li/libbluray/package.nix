@@ -93,6 +93,7 @@ stdenv.mkDerivation rec {
     longDescription = "See <https://wiki.archlinux.org/title/Blu-ray> how to use";
     license = lib.licenses.lgpl21;
     maintainers = [ lib.maintainers.amarshall ];
-    platforms = lib.platforms.unix;
+    # MSYS2 ships libbluray for MinGW; allow Windows so pkgsCross.mingwW64 can evaluate it.
+    platforms = lib.platforms.unix ++ lib.platforms.windows;
   };
 }
