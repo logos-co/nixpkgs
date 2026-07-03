@@ -17,7 +17,6 @@
   libpng,
   gnome,
   doCheck ? false,
-  makeWrapper,
   lib,
   testers,
   buildPackages,
@@ -27,6 +26,28 @@
   gobject-introspection,
 }:
 
+let
+  # gdk-pixbuf needs several GLib utilities at build time. On nixpkgs these
+  # reside in GLib's `dev` output, but adding build-machine glib.dev directly to
+  # nativeBuildInputs can leak its headers/.pc files into Meson's dependency
+  # resolution for the *target* (MinGW) build.
+  #
+  # Provide only the required executables to the PATH.
+  glibBuildTools = buildPackages.runCommand "glib-build-tools" { } ''
+    mkdir -p "$out/bin"
+    for p in \
+      gdbus-codegen \
+      gio-querymodules \
+      glib-compile-resources \
+      glib-compile-schemas \
+      glib-genmarshal \
+      glib-mkenums \
+      gtester-report \
+      ; do
+      ln -s ${buildPackages.glib.dev}/bin/$p "$out/bin/$p"
+    done
+  '';
+in
 stdenv.mkDerivation (finalAttrs: {
   pname = "gdk-pixbuf";
   version = "2.44.6";
@@ -69,8 +90,7 @@ stdenv.mkDerivation (finalAttrs: {
     pkg-config
     gettext
     python3
-    makeWrapper
-    glib
+    glibBuildTools
 
     # for man pages
     docutils
@@ -182,6 +202,6 @@ stdenv.mkDerivation (finalAttrs: {
     teams = [ lib.teams.gnome ];
     mainProgram = "gdk-pixbuf-thumbnailer";
     pkgConfigModules = [ "gdk-pixbuf-2.0" ];
-    platforms = lib.platforms.unix;
+    platforms = lib.platforms.unix ++ lib.platforms.windows;
   };
 })
